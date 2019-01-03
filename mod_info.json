@@ -1,0 +1,10 @@
+{
+  "id":"vesperon",
+  "name":"Vesperon Combine",
+  "author":"Straticus",
+  "version":"1.0.0",
+  "description":"Add the Vesperon Combine faction, events and agents to the game.",
+  "gameVersion":"0.9.0a",
+  "jars":["jars/Vesperon.jar"],
+  "modPlugin":"org.stratic.fs.starsector.api.impl.campaign.VesperonLifecyclePlugin"
+}

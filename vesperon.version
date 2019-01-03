@@ -1,0 +1,12 @@
+{
+  "masterVersionFile":"https://raw.githubusercontent.com/straticJeff/vesperon/master/vesperon.version",
+  "modName":"Vesperon Combine",
+  "modThreadId":14915,
+  "modVersion":
+  {
+    "major":1,
+    "minor":0,
+    "patch":0
+  },
+  "starsectorVersion":".9a"
+}

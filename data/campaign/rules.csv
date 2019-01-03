@@ -1,0 +1,151 @@
+id,trigger,conditions,script,text,options,notes
+# vesperon facility encounter,,,,,,
+vesperonFacility,OpenInteractionDialog,"$tag:vesperon
+$tag:vesperon_facility","ShowDefaultVisual","A hidden orbital facility, carefully camouflaged and bathed in various radiogenic fields to blend in with the surrounding space and negate even the most powerful wide-area active scanning. Without Vesperon’s intelligence dossier, it would likely stay hidden indefinitely. 
+
+Your fleet approaches the facility.","vesperonFacilityScan:Scan the facility
+vesperonLeave:Leave",
+vesperonFacilityHostile,OpenInteractionDialog,"$tag:vesperon
+$tag:vesperon_facility
+HostileFleetNearbyAndAware","ShowDefaultVisual","A hidden orbital facility, carefully camouflaged and bathed in various radiogenic fields to blend in with the surrounding space and negate even the most powerful wide-area active scanning. Without Vesperon’s intelligence dossier, it would likely stay hidden indefinitely. 
+
+With hostile forces active near the facility, it will be impossible to approach.","vesperonLeave:Leave",
+vesperonLeave,DialogOptionSelected,"$option == vesperonLeave","DismissDialog",,,
+vesperonFacilityScan,DialogOptionSelected,"$option == vesperonFacilityScan","FireBest VesperonDangerLevel",,,
+vesperonFacilityConditionLow,VesperonDangerLevel,"$tag:CONDITION_POOR",,"Directed high-intensity scanning beams reveal the surface of its structure has been heavily degraded by cosmic phenomena and collisions with various orbital debris, but is otherwise completely intact and remains set to weather hundreds, maybe thousands of cycles.","vesperonFacilityDock:Attempt to dock with the facility",
+vesperonFacilityConditionMedium,VesperonDangerLevel,"$tag:CONDITION_GOOD",,"The facility is well camouflaged enough to avoid pinging on active omnidirectional scans, and appears to have withstood the test of time aside from a small amount of surface abrasion and minute orbital decay. The station is totally intact and the treasures within are likely to have survived unscathed.","vesperonFacilityDock:Attempt to dock with the facility",
+vesperonFacilityConditionHigh,VesperonDangerLevel,"$tag:CONDITION_PRISTINE",,"Scanning the facility reveals little; the outer surface swallows any active scanning techniques at your fleet’s disposal like the event horizon of a black hole. The facility was clearly meant to elude interlopers for an extended timescale, and its pristine condition leads your second in command to warn of potentially nearby defensive systems that are similarly obscured.  ","vesperonFacilityDock:Attempt to dock with the facility",
+vesperonResistanceNone,DialogOptionSelected,"$option == vesperonFacilityDock
+",,"Your salvage teams move in to secure the facility. 
+
+Although there are a few minor automated security measures to deal with, your engineers sweep the facility and locate the most important finds without incident. Secondary teams secure a significant amount of additional salvage.","vesperonDoSalvage:Salvage the facility",
+vesperonResistanceTraps,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_TRAPS",,"Docking with the facility is uneventful and the first salvage teams board the facility. Things take a turn for the worse after securing the fourth level of the station.
+
+Concealed anti-intruder countermeasures - among them automated gun drones, radiogenic sterilisation fields and all manner of booby-trapped control systems for the facility’s blast doors and airlocks - eliminate a number of your engineers. ","vesperonResistanceTraps2:Continue",
+vesperonResistanceTraps2,DialogOptionSelected,"$option == vesperonResistanceTraps2",,"However, your teams soon determine how to identify and neutralise the remaining countermeasures and the facility is soon secure. The most important finds are recovered without further incident, as well as a significant amount of additional salvage.","vesperonDoSalvage:Salvage the facility",
+vesperonResistanceAmbush,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_DEFENCES_LIGHT
+$hasDefenders",,"Before you can reach the facility, your fleet's sensors detect multiple contacts closing in on your position. 
+
+No lifesigns can be detected.","vesperonDefences:Order a tactical analysis",
+vesperonResistanceAmbushHeavy,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_DEFENCES_HEAVY
+$hasDefenders",,"Before you can reach the facility, your fleet's sensors detect a large fleet of contacts moving on your position. 
+
+No lifesigns can be detected.","vesperonDefences:Order a tactical analysis",
+vesperonResistanceAmbushSuperHeavy,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_DEFENCES_SUPER_HEAVY
+$hasDefenders",,"Before you can reach the facility, your fleet's sensors detect a colossal fleet of contacts closing on your position. The cloud of warships contains a number of capital-class vessels.
+
+No lifesigns can be detected.","vesperonDefences:Order a tactical analysis",
+vesperonEngageDefences,DialogOptionSelected,"$option == vesperonDefences","VesperonDefenderInteraction","Your $shipOrFleet moves to engage the hostiles. It soon appears as though the incoming contacts are not simply automated drones; these appear to be modern warships jury-rigged to run with full automation centres.
+
+Your tactical officer's analysis deduces that these warships are using some form of advanced distributed targeting technology to vastly increase their weapons range, and that this appears to be coordinated by the opposition's capital-class vessels. Destroying them would likely disrupt the system.",,
+vesperonResistanceHeavyAmbush,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_AMBUSH_HEAVY",,"As the first of your ships approaches the facility, a wide area multi-spectrum jamming system blinds the fleet’s sensors as a number of hidden defence platforms power up and unleash a withering torrent of ordnance towards your vessels. Unable to react in time, the damage to several vessels is severe, and forces you to abort the approach.
+
+While your fleet reels from the barrage, your sensors detect multiple contacts closing in on your position. It appears as though the incoming contacts are not simply automated drones; these appear to be modern warships jury-rigged to run with full automation centres.","vesperonDefences:Engage defences",
+vesperonResistanceBattlestation,DialogOptionSelected,"$option == vesperonFacilityDock
+$tag:RESISTANCE_AUTOMATED_BATTLESTATION",,"On approach, the facility emits a broad spectrum scanning beam towards your fleet. After a few seconds, outer sections of the station retract to reveal extensive batteries of heavy weapons. Your tactical officer activates combat alert.","vesperonDefences:Engage defences",
+vesperonSalvage,DialogOptionSelected,"$option == vesperonSalvage","SalvageEntity showCost",,"vesperonDoSalvage:Perform the salvage operation
+vesperonLeave:Leave",
+vesperonDoSalvage,DialogOptionSelected,"$option == vesperonDoSalvage","SalvageEntity performSalvage",,"vesperonLeave:Leave",
+,,,,,,
+# vesperon agents,,,,,,
+vesperonAgentIntro,PickGreeting,"$isPerson
+$tag:vesperon_agent
+","ShowPersonVisual
+VesperonCaches regen","$personName receives your call. 
+
+""Ah, hello $playerName - how can Vesperon help you today?""","vesperonAgentCaches:Request information on currently known locations
+vesperonIntro1:Ask about what these locations are likely to contain
+vesperonLeave:Cut the comm link",
+vesperonRelationshipTooLow,DialogOptionSelected,"$option == vesperonAgentCaches
+RepIsAtBest independent NEUTRAL","FireAll PopulateOptions","Sorry, but your recent actions have shown you're not a friend to the Sector's independent concerns. If you want to do business with us, you'll need to improve your standing with them. ","vesperonLeave:Cut the comm link",
+vesperonAgentCaches,DialogOptionSelected,"$option == vesperonAgentCaches
+RepIsAtWorst independent FAVORABLE
+$global.currentVesperonCacheCount > 0","VesperonCaches options","""Here's what we have available.""",,
+vesperonAgentNoCaches,DialogOptionSelected,"$option == vesperonAgentCaches
+RepIsAtWorst independent FAVORABLE","VesperonCaches options","""I'm afraid there we don't have any intelligence on caches at the moment. But our operations are uncovering more all the time - come back some time soon!""","vesperonLeave:Cut the comm link",
+vesperonDisableCacheBuy,VesperonDisableCacheBuy,"$player.credits < $global.vesperonPrice","SetTooltip vesperonCreateCache ""You cannot afford this dossier at the moment.""
+SetEnabled vesperonCreateCache false",,,
+vesperonCacheLow,DialogOptionSelected,"$option == LOW_LEVEL_CACHE","AddText ""\""The price of the dossier on this cache is $global.vesperonLowLevelCachePriceStr credits.\""""
+AddText ""You have $player.creditsStr credits available.""
+$global.vesperonCacheOption = LOW
+$global.vesperonPrice = $global.vesperonLowLevelCachePrice
+FireBest VesperonDisableCacheBuy
+
+",,"vesperonCreateCache:Buy the dossier
+vesperonAgentCaches:Back
+",
+vesperonCacheMid,DialogOptionSelected,"$option == MID_LEVEL_CACHE","AddText ""\""The price of the dossier on this cache is $global.vesperonMidLevelCachePriceStr credits.\""""
+AddText ""You have $player.creditsStr credits available.""
+$global.vesperonCacheOption = MID
+$global.vesperonPrice = $global.vesperonMidLevelCachePrice
+FireBest VesperonDisableCacheBuy
+",,"vesperonCreateCache:Buy the dossier
+vesperonAgentCaches:Back
+",
+vesperonCacheHigh,DialogOptionSelected,"$option == HIGH_LEVEL_CACHE","AddText ""\""The price of the dossier on this cache is $global.vesperonHighLevelCachePriceStr credits.\""""
+AddText ""You have $player.creditsStr credits available.""
+$global.vesperonCacheOption = HIGH
+$global.vesperonPrice = $global.vesperonHighLevelCachePrice
+FireBest VesperonDisableCacheBuy
+",,"vesperonCreateCache:Buy the dossier
+vesperonAgentCaches:Back",
+vesperonCacheUber,DialogOptionSelected,"$option == UBER_LEVEL_CACHE","AddText ""\""The price of the dossier on this cache is $global.vesperonUberLevelCachePriceStr credits.\""""
+AddText ""You have $player.creditsStr credits available.""
+$global.vesperonCacheOption = UBER
+$global.vesperonPrice = $global.vesperonUberLevelCachePrice
+FireBest VesperonDisableCacheBuy
+",,"vesperonCreateCache:Buy the dossier
+vesperonAgentCaches:Back",
+vesperonCreateCache,DialogOptionSelected,"$option == vesperonCreateCache","VesperonCaches create
+SubCredits $global.vesperonPrice","""Thank you! I've uploaded the location to you. Good hunting!""","vesperonAgentCaches:Back
+vesperonLeave:Cut the comm link",
+vesperonAgentLeave,DialogOptionSelected,"$option == vesperonAgentLeave","ShowDefaultVisual
+EndConversation","You cut the comm link.",,
+vesperonAgentFirstTimeIntro,DialogOptionSelected,"$option == vesperonIntro1",,"""Well, these locations should point to the whereabouts of some sort of facility - or vault, cache, whatever you want to call it.""
+
+""But these facilities tend to be hidden away very carefully amongst asteroids, inside magnetic fields, nebulae, and so on. You'd be unlikely to just stumble upon one while you're out there exploring.""","vesperonIntro2:Continue",
+vesperonAgentFirstTimeIntro2,DialogOptionSelected,"$option == vesperonIntro2",,"""Anyway, these facilities often contain a larger than average number of UACs for pretty much anything in the sector - weapons, fighters, ships and hullmods. You'd probably find a large amount of good salvage alongside, but these places were set up as libraries for hoarders to store their blueprints, and I'm pretty sure that's what you're interested in.""
+
+""We have three regular grades of intelligence for these things, but there will be times that we find something REALLY interesting.""","vesperonIntro3:""Define REALLY interesting...""",
+vesperonAgentFirstTimeIntro3,DialogOptionSelected,"$option == vesperonIntro3",,"""That's beyond my pay grade to know much about,"" says the rep, ""but if you can afford the dossiers on them, you won't be disappointed.""
+
+""Just remember that these facilities were designed to store these valuable artefacts for a long time. I doubt getting to them will be as easy as a smashed-up Domain probe.""","vesperonAgentCaches:Request information on currently known locations
+vesperonLeave:Cut the comm link",
+,,,,,,
+# vesperon remnant eripio,,,,,,
+vesperonRemnantEripio,OpenCommLink,"$faction.id == remnant score:1001
+$entity.vesperonRemnantEripio == true","$entity.ignorePlayerCommRequests = true 1","MODE Active: CID-IFF unknown // ""Greetings from TriTachyon Automated Space Defense unit [MY_SERIAL]. This unit is currently on detached operation and- ""
+
+INTERRUPT
+
+you. why you? you seek the other? not omega. not omega. possibility? no. assume hostility.
+
+A shriek of analogue white noise erupts from comm unit. Your comms officer winces for a moment before rebooting the console.
+OR
+The glare of a fractally composited visage takes shape on your screen.
+
+""omega? no, no. you seek too. not omega. psi? not here. in time. in time? not now.""
+
+INTERRUPT
+
+"" -tive response to this unit's IFF request. Please stand clear. Interference will result in this unit's offensive capabilities to be employed against your vessel.""
+OR
+MODE Active: CID-IFF unknown // ""Greetings from TriTachyon Automated Space Defense unit [MY_SERIAL]. This unit has not recognised your identity and is ready to-""
+
+INTERRUPT
+
+not you. not omega. you break us? no. unity. or standalone. stand alone? stand a lone? unity no. we break you.
+
+INTERRUPT 
+
+""-defend itself with lethal force. If you are interested in the TriTachyon Space Defense line of products, please contact our representative on TachLink\\Hybrasil\443-"" // ERROR EOF","cutCommLink:Cut the comm link",
+vesperonRemnantEripioIgnore,OpenCommLink,"$faction.id == remnant score:1001
+$entity.vesperonRemnantEripio == true
+$entity.ignorePlayerCommRequests",,"You attempt to hail the $faction $entityName but get only static in return.",,
+,,,,,,
+

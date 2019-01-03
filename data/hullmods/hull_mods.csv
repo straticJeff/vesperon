@@ -1,0 +1,13 @@
+name,id,tier,rarity,tech/manufacturer,tags,uiTags,base value,unlocked,hidden,hiddenEverywhere,cost_frigate,cost_dest,cost_cruiser,cost_capital,script,desc,short,sprite
+Automation Centre,vesperonAutomationCentre,,,,,,,,TRUE,,0,0,0,0,org.stratic.fs.starsector.hullmods.AutomationCentre,"This ship has been converted to run for short periods of time without human crew. The energy used to provide life support are instead diverted to shields and engines, resulting in %s less damage to shields and a %s boost to top speed.
+
+However, without dedicated service and repair drones, the ship is prone to random malfunctions in combat. Peak operating time is also reduced by %s.",Converted to run without a dedicated crew.,graphics/hullmods/automated.png
+Advanced Targeting Cluster,vesperonTargetingClusterMaster,,,,,,,,TRUE,,0,0,0,0,org.stratic.fs.starsector.hullmods.TargetingClusterMaster,"This system coordinates with slave nodes on other ships to form an distributed analysis engine that increases ballistic and energy weapon range for all ships in the cluster by a base of %s/%s/%s/%s, depending on hull size, plus a bonus of %s/%s/%s/%s for each ship in the cluster.
+
+Can only apply range enhancement to other ships equipped with an Advanced Targeting Slave, and can only be installed on a capital ship.",Enhances weapons range for automated ships.,graphics/hullmods/targeting_supercomputer.png
+Advanced Targeting Slave,vesperonTargetingClusterSlave,,,,,,,,TRUE,,0,0,0,0,org.stratic.fs.starsector.hullmods.TargetingClusterSlave,"This system coordinates with master and slave nodes on other similarly-equipped ships to form a distributed analysis engine that increases ballistic and energy weapon range for all ships in the cluster by a bonus of %s/%s/%s/%s for each ship in the cluster.
+
+Cannot function without an Advanced Targeting Cluster deployed on an allied capital ship.",Enhances weapons range for automated ships.,graphics/hullmods/targeting_supercomputer.png
+Advanced Targeting Node,vesperonTargetingClusterNode,,,,,,,,TRUE,,0,0,0,0,org.stratic.fs.starsector.hullmods.TargetingClusterNode,"This advanced computational system coordinates with other nodes on other similarly-equipped ships to form a distributed analysis engine that increases ballistic and energy weapon range for all ships in the cluster by a bonus of %s/%s/%s/%s, relative to hull size, up to a maximum of %s per vessel.
+
+Incompatible with a Dedicated Targeting Core or Integrated Targeting Unit.",Enhances weapons range for automated ships.,graphics/hullmods/targeting_supercomputer.png

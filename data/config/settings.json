@@ -1,0 +1,12 @@
+{
+  "graphics": {
+    "intel": {
+      "vesperon_female": "graphics/portraits/portrait_corporate02.png",
+      "vesperon_male": "graphics/portraits/portrait_corporate03.png"
+    }
+  },
+  "ruleCommandPackages":[
+    "org.stratic.fs.starsector.api.impl.campaign.rulecmd"
+  ]
+
+}
