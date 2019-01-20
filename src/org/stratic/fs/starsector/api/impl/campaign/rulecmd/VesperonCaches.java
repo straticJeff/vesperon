@@ -87,7 +87,7 @@ public class VesperonCaches extends BaseCommandPlugin {
 
         removeCacheOption(memory, memoryKey, cacheCount);
 
-        VesperonIntelManager intelManager = new VesperonIntelManager();
+        VesperonIntelManager intelManager = VesperonIntelManager.getInstance();
         intelManager.createVesperonMission(v);
     }
 

@@ -1,5 +1,15 @@
 Changelog
 
+1.1.0
+---
+
+- Added whitelisting system for other mods to opt-in
+    - Add to `data/config/vesperon_blueprints.json` to whitelist content
+    - See example vanilla config file
+- Whitelisted all (obtainable) vanilla blueprints
+- Slightly optimised VesperonIntelManager to not load new JSON structs all the time
+- Move the Vesperon rep around once every 60 days to make sure market decivs (et al) can't break the mod
+
 1.0
 ---
 

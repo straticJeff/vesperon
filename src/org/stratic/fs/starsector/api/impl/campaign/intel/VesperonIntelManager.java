@@ -1,6 +1,7 @@
 package org.stratic.fs.starsector.api.impl.campaign.intel;
 
 import com.fs.starfarer.api.Global;
+import com.fs.starfarer.api.ModSpecAPI;
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
@@ -25,6 +26,9 @@ import com.fs.starfarer.api.util.ListMap;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.WeightedRandomPicker;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.lwjgl.util.vector.Vector2f;
 import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonHullMods;
 import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonTags;
@@ -33,21 +37,59 @@ import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonTags.VesperonFaci
 import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonTags.VesperonHazard;
 import org.stratic.fs.starsector.util.SequenceGenerator;
 
+import java.io.IOException;
 import java.util.*;
 
 public class VesperonIntelManager {
 
+    public enum BlueprintFilterMode {
+        FILTER_MODE_WHITELIST,
+        FILTER_MODE_TAGS,
+        FILTER_MODE_NONE,
+    }
+
+    private BlueprintFilterMode filterMode;
+
     private static final String SEQUENCE_GENERATOR_KEY = "VesperonSeed";
 
     private HashMap<String, Set<String>> allFactionBlueprints;
+    private HashMap<String, Set<String>> whiteListedBlueprints;
 
     public class VesperonFacilityLocation {
         StarSystemAPI system;
         CampaignTerrainAPI terrain;
     }
 
-    public VesperonIntelManager() {
+    public static VesperonIntelManager getInstance() {
+        BlueprintFilterMode blueprintFilterMode = BlueprintFilterMode.FILTER_MODE_WHITELIST;
+        if (!Global.getSector().getMemoryWithoutUpdate().contains(VesperonTags.KEY_MANAGER_INSTANCE)) {
+            try {
+                JSONObject config = Global.getSettings().loadJSON("data/config/vesperon.json");
+                if (config.has("blueprintFilterMode")) {
+                    blueprintFilterMode = BlueprintFilterMode.valueOf(config.getString("blueprintFilterMode"));
+                    return getInstance(blueprintFilterMode);
+                }
+            } catch (IOException | JSONException | RuntimeException ignored) {
+
+            }
+        }
+        return getInstance(blueprintFilterMode);
+    }
+
+    private static VesperonIntelManager getInstance(BlueprintFilterMode filterMode) {
+        if (Global.getSector().getMemoryWithoutUpdate().contains(VesperonTags.KEY_MANAGER_INSTANCE)) {
+            return (VesperonIntelManager)Global.getSector().getMemory().get(VesperonTags.KEY_MANAGER_INSTANCE);
+        } else {
+            VesperonIntelManager manager = new VesperonIntelManager(filterMode);
+            Global.getSector().getMemoryWithoutUpdate().set(VesperonTags.KEY_MANAGER_INSTANCE, manager);
+            return manager;
+        }
+    }
+
+    private VesperonIntelManager(BlueprintFilterMode filterMode) {
         Logger l = Global.getLogger(this.getClass());
+         l.info("VesperonIntelManager init: using filter mode " + filterMode.toString());
+        this.filterMode = filterMode;
 
         allFactionBlueprints = new HashMap<>();
         allFactionBlueprints.put(Items.SHIP_BP, new HashSet<String>());
@@ -71,6 +113,13 @@ public class VesperonIntelManager {
             }
         }
         logBlueprintSet(allFactionBlueprints);
+
+        if (this.filterMode == BlueprintFilterMode.FILTER_MODE_WHITELIST) {
+            loadBlueprintWhitelist();
+            for (String key : allFactionBlueprints.keySet()) {
+                allFactionBlueprints.get(key).retainAll(whiteListedBlueprints.get(key));
+            }
+        }
     }
 
 
@@ -93,19 +142,19 @@ public class VesperonIntelManager {
         HashMap<String, Set<String>> unknownBlueprints = getUnknownBlueprintsForFaction(
             Global.getSector().getPlayerFaction()
         );
-        ArrayList<String[]> unknownBlueprintIds = new ArrayList<>(getAllNamespacedBlueprints(unknownBlueprints));
-        l.info("Count of all unknown blueprints IDs: " + unknownBlueprintIds.size());
-
-        int unknownBlueprintCount = unknownBlueprintIds.size();
 
         int cacheMaxValue = (int) cache.minValue + generator.nextInt((int) cache.maxValue - (int) cache.minValue);
         int cacheValue = 0;
         int blueprintsEvaluated = 0;
 
+        ArrayList<String[]> unknownBlueprintIds = new ArrayList<>(getAllNamespacedBlueprints(unknownBlueprints));
+        l.info("Count of all unknown blueprints IDs: " + unknownBlueprintIds.size());
+
+        int unknownBlueprintCount = unknownBlueprintIds.size();
         HashSet<String[]> cacheBlueprints = new HashSet<>();
 
         while (cacheValue < cacheMaxValue && blueprintsEvaluated <= unknownBlueprintCount) {
-            int commodityIndex = generator.nextInt(unknownBlueprintIds.size() - 1);
+            int commodityIndex = generator.nextInt(unknownBlueprintIds.size());
 
             String[] commodity = unknownBlueprintIds.get(commodityIndex);
             String commodityPrefix = commodity[0];
@@ -236,7 +285,9 @@ public class VesperonIntelManager {
                 price = modSpec.getBaseValue();
                 break;
         }
-        return (price > minPrice ? price : minPrice) * basePriceMultiplier;
+        float finalPrice = price * basePriceMultiplier;
+//        finalPrice = 1;
+        return (finalPrice > minPrice ? finalPrice : minPrice);
     }
 
     /**
@@ -252,6 +303,7 @@ public class VesperonIntelManager {
                 }
             }
         }
+        Global.getSector().getMemory().set(VesperonTags.AGENTS_ADDED, true);
     }
 
     private HashMap<String, Set<String>> getKnownBlueprintsForFaction(FactionAPI faction) {
@@ -262,11 +314,8 @@ public class VesperonIntelManager {
             String shipId = iterator.next();
             ShipHullSpecAPI ship = Global.getSettings().getHullSpec(shipId);
             if (
-                ship.getHints().contains(ShipTypeHints.UNBOARDABLE) ||
-                    ship.getHints().contains(ShipTypeHints.HIDE_IN_CODEX) ||
-                    ship.getHints().contains(ShipTypeHints.SHIP_WITH_MODULES) ||
-                    ship.getHints().contains(ShipTypeHints.STATION) ||
-                    ship.getHints().contains(ShipTypeHints.UNDER_PARENT)
+                shouldExcludeBasedOnHints(ship) ||
+                shouldExcludeBasedOnTags(ship)
             ) {
                 iterator.remove();
             }
@@ -309,6 +358,73 @@ public class VesperonIntelManager {
         factionPublicBlueprints.put(Items.MODSPEC, knownHullMods);
 
         return factionPublicBlueprints;
+    }
+
+    private void loadBlueprintWhitelist() {
+        Logger l = Global.getLogger(this.getClass());
+
+        whiteListedBlueprints = new HashMap<>();
+        whiteListedBlueprints.put(Items.SHIP_BP, new HashSet<String>());
+        whiteListedBlueprints.put(Items.WEAPON_BP, new HashSet<String>());
+        whiteListedBlueprints.put(Items.FIGHTER_BP, new HashSet<String>());
+        whiteListedBlueprints.put(Items.MODSPEC, new HashSet<String>());
+
+        List<ModSpecAPI> modSpecs = Global.getSettings().getModManager().getEnabledModsCopy();
+        for (ModSpecAPI mod : modSpecs) {
+            try {
+                JSONObject json = Global.getSettings().loadJSON("data/config/vesperon_blueprints.json", mod.getId());
+                JSONObject blueprints = json.getJSONObject("availableCacheBlueprints");
+
+                try {
+                    JSONArray shipBlueprints = blueprints.getJSONArray("hullSpecIds");
+                    for (int i = 0; i < shipBlueprints.length(); i++) {
+                        whiteListedBlueprints.get(Items.SHIP_BP).add(shipBlueprints.getString(i));
+                    }
+                } catch (JSONException noHullsException) {
+                    l.info("No hullSpec drop information for mod " + mod.getId());
+                }
+
+                try {
+                    JSONArray weaponBlueprints = blueprints.getJSONArray("weaponSpecIds");
+                    for (int i = 0; i < weaponBlueprints.length(); i++) {
+                        whiteListedBlueprints.get(Items.WEAPON_BP).add(weaponBlueprints.getString(i));
+                    }
+                } catch (JSONException noHullsException) {
+                    l.info("No weaponSpec drop information for mod " + mod.getId());
+                }
+
+                try {
+                    JSONArray fighterWingIds = blueprints.getJSONArray("fighterWingIds");
+                    for (int i = 0; i < fighterWingIds.length(); i++) {
+                        whiteListedBlueprints.get(Items.FIGHTER_BP).add(fighterWingIds.getString(i));
+                    }
+                } catch (JSONException noHullsException) {
+                    l.info("No fighterWing drop information for mod " + mod.getId());
+                }
+
+            } catch (IOException|RuntimeException e) {
+                l.info("No blueprint drop information for mod " + mod.getId());
+            } catch (JSONException e) {
+                l.info("Malformed JSON in blueprint drop information for mod " + mod.getId());
+            }
+        }
+
+        l.info(whiteListedBlueprints);
+    }
+
+    private boolean shouldExcludeBasedOnTags(ShipHullSpecAPI ship) {
+        if (filterMode == BlueprintFilterMode.FILTER_MODE_TAGS) {
+            return !ship.hasTag(Items.TAG_RARE_BP) || ship.hasTag(Tags.NO_BP_DROP) || ship.hasTag(Tags.NO_DROP);
+        }
+        return false;
+    }
+
+    private boolean shouldExcludeBasedOnHints(ShipHullSpecAPI ship) {
+        return ship.getHints().contains(ShipTypeHints.UNBOARDABLE) ||
+            ship.getHints().contains(ShipTypeHints.HIDE_IN_CODEX) ||
+            ship.getHints().contains(ShipTypeHints.SHIP_WITH_MODULES) ||
+            ship.getHints().contains(ShipTypeHints.STATION) ||
+            ship.getHints().contains(ShipTypeHints.UNDER_PARENT);
     }
 
     private HashMap<String, Set<String>> getUnknownBlueprintsForFaction(FactionAPI faction) {
@@ -556,7 +672,6 @@ public class VesperonIntelManager {
     private void assignSpecialAutomatedDefenses(CustomCampaignEntityAPI facility) {
         Logger l = Global.getLogger(this.getClass());
         Random r = new Random();
-        MarketAPI chosenMarket = null;
         MemoryAPI facilityMemory = facility.getMemoryWithoutUpdate();
 
         MarketAPI independentMarket = getMarketForFaction(Factions.INDEPENDENT);
@@ -573,9 +688,8 @@ public class VesperonIntelManager {
             l.info("Adding light defences");
             switch (defenseType) {
                 case VesperonTags.RESISTANCE_TYPE_AUTOMATED:
-                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, chosenMarket);
-                    variants = new ArrayList<>();
-                    variants.addAll(createAutomatedDefenderMembers(independentMarket, 125));
+                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, null);
+                    variants = new ArrayList<>(createAutomatedDefenderMembers(independentMarket, 125));
                     independentMarket.getFaction().pickShipAndAddToFleet(ShipRoles.COMBAT_CAPITAL, FactionAPI.ShipPickParams.all(), defenders, r);
                     break;
                 case VesperonTags.RESISTANCE_TYPE_REMNANTS:
@@ -586,7 +700,7 @@ public class VesperonIntelManager {
             l.info("Adding heavy defences");
             switch (defenseType) {
                 case VesperonTags.RESISTANCE_TYPE_AUTOMATED:
-                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, chosenMarket);
+                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, null);
                     variants = new ArrayList<>();
                     variants.addAll(createAutomatedDefenderMembers(diktatMarket, 60));
                     variants.addAll(createAutomatedDefenderMembers(hegemonyMarket, 60));
@@ -601,7 +715,7 @@ public class VesperonIntelManager {
             l.info("Adding superheavy defences");
             switch (defenseType) {
                 case VesperonTags.RESISTANCE_TYPE_AUTOMATED:
-                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, chosenMarket);
+                    defenders = FleetFactoryV3.createEmptyFleet(Factions.INDEPENDENT, FleetTypes.TASK_FORCE, null);
                     variants = new ArrayList<>();
                     variants.addAll(createAutomatedDefenderMembers(diktatMarket, 80));
                     variants.addAll(createAutomatedDefenderMembers(hegemonyMarket, 80));
@@ -639,7 +753,6 @@ public class VesperonIntelManager {
         defenders.setName("Automated Defenses");
         defenders.clearAbilities();
         l.info("Adding defenders");
-        boolean flagshipChosen = false;
 
         Collection<FleetMemberAPI> newDefenderMembers = newFleetData.getMembersInPriorityOrder();
 
@@ -658,7 +771,7 @@ public class VesperonIntelManager {
                 temporaryVariant.removeMod(HullMods.DEDICATED_TARGETING_CORE);
             }
 
-            // TODO - re-enable this, if we can work out how to deploy capitals first
+            // TODO - re-enable this, if I can work out how to deploy capitals first
 //            if (member.isCapital()) {
 //                temporaryVariant.addPermaMod(VesperonHullMods.TARGETING_CLUSTER_MASTER);
 //            } else {

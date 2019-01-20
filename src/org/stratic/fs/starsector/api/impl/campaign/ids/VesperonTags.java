@@ -8,8 +8,10 @@ public class VesperonTags {
     // Memory API keys
     public static final String MOD_ENABLED = "$vesperon_enabled";
     public static final String REP_MARKET = "$vesperonRepMarket";
+    public static final String AGENTS_ADDED = "$vesperonAgentsAdded";
     public static final String CURRENT_CACHE_COUNT = "$currentVesperonCacheCount";
     public static final String CACHE_OPTION = "$vesperonCacheOption";
+    public static final String KEY_MANAGER_INSTANCE = "$vesperonIntelManager";
 
     public static final String AVAILABILITY_LEVEL_LOW = "$lowLevelCacheAvailable";
     public static final String AVAILABILITY_LEVEL_MID = "$midLevelCacheAvailable";
@@ -35,13 +37,11 @@ public class VesperonTags {
     public static final String AGENT_ASSIGNED = "vesperon_agent_assigned";
     public static final String POST_AGENT = "vesperonRep";
 
+    // Cache grades
     public static final String CACHE_OPTION_LOW = "LOW";
     public static final String CACHE_OPTION_MID = "MID";
     public static final String CACHE_OPTION_HIGH = "HIGH";
     public static final String CACHE_OPTION_UBER = "UBER";
-
-    // Location constants
-    public static final int MIN_ORBITAL_PERIOD = 15;
 
     // Remnant memflags
     public static final String REMNANT_ERIPIO = "$vesperonRemnantEripio";
