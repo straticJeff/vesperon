@@ -308,54 +308,50 @@ public class VesperonIntelManager {
 
     private HashMap<String, Set<String>> getKnownBlueprintsForFaction(FactionAPI faction) {
         HashMap<String, Set<String>> factionPublicBlueprints = new HashMap<>();
+        factionPublicBlueprints.put(Items.SHIP_BP, new HashSet<String>());
+        factionPublicBlueprints.put(Items.WEAPON_BP, new HashSet<String>());
+        factionPublicBlueprints.put(Items.FIGHTER_BP, new HashSet<String>());
+        factionPublicBlueprints.put(Items.MODSPEC, new HashSet<String>());
 
         Set<String> knownShips = faction.getKnownShips();
-        for (Iterator<String> iterator = knownShips.iterator(); iterator.hasNext(); ) {
-            String shipId = iterator.next();
+        for (String shipId : knownShips) {
             ShipHullSpecAPI ship = Global.getSettings().getHullSpec(shipId);
-            if (
+            if (!(
                 shouldExcludeBasedOnHints(ship) ||
-                shouldExcludeBasedOnTags(ship)
-            ) {
-                iterator.remove();
+                    shouldExcludeBasedOnTags(ship)
+            )) {
+                factionPublicBlueprints.get(Items.SHIP_BP).add(shipId);
             }
         }
-        factionPublicBlueprints.put(Items.SHIP_BP, knownShips);
 
         Set<String> knownWeapons = faction.getKnownWeapons();
-        for (Iterator<String> iterator = knownWeapons.iterator(); iterator.hasNext(); ) {
-            String weaponId = iterator.next();
+        for (String weaponId : knownWeapons) {
             WeaponSpecAPI weapon = Global.getSettings().getWeaponSpec(weaponId);
-            if (weapon.getAIHints().contains(WeaponAPI.AIHints.SYSTEM)) {
-                iterator.remove();
+            if (!weapon.getAIHints().contains(WeaponAPI.AIHints.SYSTEM)) {
+                factionPublicBlueprints.get(Items.WEAPON_BP).add(weaponId);
             }
         }
-        factionPublicBlueprints.put(Items.WEAPON_BP, knownWeapons);
 
         Set<String> knownFighters = faction.getKnownFighters();
-        for (Iterator<String> iterator = knownFighters.iterator(); iterator.hasNext(); ) {
-            String fighterId = iterator.next();
+        for (String fighterId : knownFighters) {
             FighterWingSpecAPI fighter = Global.getSettings().getFighterWingSpec(fighterId);
-            if (fighter.getTags().contains(Tags.WING_NO_DROP)) {
-                iterator.remove();
+            if (!fighter.getTags().contains(Tags.WING_NO_DROP)) {
+                factionPublicBlueprints.get(Items.FIGHTER_BP).add(fighterId);
             }
         }
-        factionPublicBlueprints.put(Items.FIGHTER_BP, knownFighters);
 
-        Set<String> knownHullMods = new HashSet<>();
 //        Set<String> knownHullMods = faction.getKnownHullMods();
-//        for (Iterator<String> iterator = knownHullMods.iterator(); iterator.hasNext();) {
-//            String hullMod = iterator.next();
+//        for (String hullMod : knownHullMods) {
 //            HullModSpecAPI hullmod = Global.getSettings().getHullModSpec(hullMod);
-//            if (
-//                    hullmod.getTags().contains(Tags.HULLMOD_NO_DROP) ||
-//                            hullmod.getTags().contains(Tags.HULLMOD_DMOD) ||
-//                            hullmod.getTags().contains(Tags.HULLMOD_NO_DROP_SALVAGE)
-//            ) {
-//                iterator.remove();
+//            if (!(
+//                hullmod.getTags().contains(Tags.HULLMOD_NO_DROP) ||
+//                hullmod.getTags().contains(Tags.HULLMOD_DMOD) ||
+//                hullmod.getTags().contains(Tags.HULLMOD_NO_DROP_SALVAGE)
+//            )) {
+//                factionPublicBlueprints.get(Items.MODSPEC).add(hullMod);
 //            }
 //        }
-        factionPublicBlueprints.put(Items.MODSPEC, knownHullMods);
+//        factionPublicBlueprints.put(Items.MODSPEC, knownHullMods);
 
         return factionPublicBlueprints;
     }

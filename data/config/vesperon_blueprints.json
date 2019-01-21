@@ -140,25 +140,22 @@
       "tachyonlance"
     ],
     "fighterWingIds": [
-      "talon",
-      "dagger",
-      "wasp",
-      "xyphos",
-      "broadsword",
-      "piranha",
-      "trident",
-      "longbow",
-      "mining_drone",
-      "gladius",
-      "warthog",
-      "thunder",
-      "claw",
-      "hoplon",
-      "spark",
-      "lux",
-      "flash",
-      "perdition",
-      "cobra"
+      "talon_wing",
+      "dagger_wing",
+      "wasp_wing",
+      "xyphos_wing",
+      "broadsword_wing",
+      "piranha_wing",
+      "trident_wing",
+      "longbow_wing",
+      "mining_drone_wing",
+      "gladius_wing",
+      "warthog_wing",
+      "thunder_wing",
+      "claw_wing",
+      "hoplon_wing",
+      "perdition_wing",
+      "cobra_wing"
     ]
   }
 }

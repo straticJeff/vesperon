@@ -1,5 +1,11 @@
 Changelog
 
+1.1.1
+---
+
+- Updated available vanilla blueprint whitelist to use fighter wing IDs, not fighter hull IDs
+- Prevent Remnant and BB spawn breakage
+
 1.1.0
 ---
 
