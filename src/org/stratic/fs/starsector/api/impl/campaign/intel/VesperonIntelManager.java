@@ -88,7 +88,7 @@ public class VesperonIntelManager {
 
     private VesperonIntelManager(BlueprintFilterMode filterMode) {
         Logger l = Global.getLogger(this.getClass());
-         l.info("VesperonIntelManager init: using filter mode " + filterMode.toString());
+        l.info("VesperonIntelManager init: using filter mode " + filterMode.toString());
         this.filterMode = filterMode;
 
         allFactionBlueprints = new HashMap<>();
@@ -307,6 +307,8 @@ public class VesperonIntelManager {
     }
 
     private HashMap<String, Set<String>> getKnownBlueprintsForFaction(FactionAPI faction) {
+        Logger l = Global.getLogger(this.getClass());
+
         HashMap<String, Set<String>> factionPublicBlueprints = new HashMap<>();
         factionPublicBlueprints.put(Items.SHIP_BP, new HashSet<String>());
         factionPublicBlueprints.put(Items.WEAPON_BP, new HashSet<String>());
@@ -315,28 +317,40 @@ public class VesperonIntelManager {
 
         Set<String> knownShips = faction.getKnownShips();
         for (String shipId : knownShips) {
-            ShipHullSpecAPI ship = Global.getSettings().getHullSpec(shipId);
-            if (!(
-                shouldExcludeBasedOnHints(ship) ||
-                    shouldExcludeBasedOnTags(ship)
-            )) {
-                factionPublicBlueprints.get(Items.SHIP_BP).add(shipId);
+            try {
+                ShipHullSpecAPI ship = Global.getSettings().getHullSpec(shipId);
+                if (!(
+                    shouldExcludeBasedOnHints(ship) ||
+                        shouldExcludeBasedOnTags(ship)
+                )) {
+                    factionPublicBlueprints.get(Items.SHIP_BP).add(shipId);
+                }
+            } catch (Exception ignored) {
+                l.info("Error resolving " + shipId + ", skipping");
             }
         }
 
         Set<String> knownWeapons = faction.getKnownWeapons();
         for (String weaponId : knownWeapons) {
-            WeaponSpecAPI weapon = Global.getSettings().getWeaponSpec(weaponId);
-            if (!weapon.getAIHints().contains(WeaponAPI.AIHints.SYSTEM)) {
-                factionPublicBlueprints.get(Items.WEAPON_BP).add(weaponId);
+            try {
+                WeaponSpecAPI weapon = Global.getSettings().getWeaponSpec(weaponId);
+                if (!weapon.getAIHints().contains(WeaponAPI.AIHints.SYSTEM)) {
+                    factionPublicBlueprints.get(Items.WEAPON_BP).add(weaponId);
+                }
+            } catch (Exception ignored) {
+                l.info("Error resolving " + weaponId + ", skipping");
             }
         }
 
         Set<String> knownFighters = faction.getKnownFighters();
         for (String fighterId : knownFighters) {
-            FighterWingSpecAPI fighter = Global.getSettings().getFighterWingSpec(fighterId);
-            if (!fighter.getTags().contains(Tags.WING_NO_DROP)) {
-                factionPublicBlueprints.get(Items.FIGHTER_BP).add(fighterId);
+            try {
+                FighterWingSpecAPI fighter = Global.getSettings().getFighterWingSpec(fighterId);
+                if (!fighter.getTags().contains(Tags.WING_NO_DROP)) {
+                    factionPublicBlueprints.get(Items.FIGHTER_BP).add(fighterId);
+                }
+            } catch (Exception ignored) {
+                l.info("Error resolving " + fighterId + ", skipping");
             }
         }
 
