@@ -6,7 +6,7 @@ import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.BarEventManager;
 import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonTags;
 import org.stratic.fs.starsector.api.impl.campaign.intel.VesperonIntelManager;
-import org.stratic.fs.starsector.api.impl.campaign.intel.bar.events.VesperonMembershipBarEventCreator;
+import org.stratic.fs.starsector.api.impl.campaign.intel.bar.events.VesperonMembershipBarEventCreatorV2;
 
 @SuppressWarnings("unused")
 public class VesperonLifecyclePlugin extends BaseModPlugin {
@@ -19,17 +19,21 @@ public class VesperonLifecyclePlugin extends BaseModPlugin {
         MemoryAPI m = Global.getSector().getMemoryWithoutUpdate();
         boolean enabled = m.getBoolean(VesperonTags.MOD_ENABLED);
         if (!enabled) {
-            Global.getLogger(this.getClass()).info("Enabling Vesperon mod for first time");
             m.set(VesperonTags.MOD_ENABLED, true);
         }
 
         BarEventManager bar = BarEventManager.getInstance();
-        if (!bar.hasEventCreator(VesperonMembershipBarEventCreator.class)) {
-            bar.addEventCreator(new VesperonMembershipBarEventCreator());
+        if (!bar.hasEventCreator(VesperonMembershipBarEventCreatorV2.class)) {
+            bar.addEventCreator(new VesperonMembershipBarEventCreatorV2());
         }
 
         // initialise blueprint manager with configured filter mode
-        VesperonIntelManager.getInstance();
+        VesperonIntelManager intelManager = VesperonIntelManager.getInstance();
+
+        Global.getSector().addListener(
+            new VesperonEventListener()
+        );
+
     }
 
 

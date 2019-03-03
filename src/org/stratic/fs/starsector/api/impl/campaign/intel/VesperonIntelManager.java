@@ -6,6 +6,7 @@ import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.characters.ImportantPeopleAPI;
+import com.fs.starfarer.api.characters.ImportantPeopleAPI.PersonDataAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.combat.ShipHullSpecAPI;
 import com.fs.starfarer.api.combat.ShipHullSpecAPI.ShipTypeHints;
@@ -291,21 +292,59 @@ public class VesperonIntelManager {
     }
 
     /**
-     * Generates Vesperon mission-giver agents at independent markets.
+     * Generates Vesperon mission-giver agents at markets.
      */
-    public void activateMembershipAgents() {
+    public void distributeMembershipAgents() {
         List<LocationAPI> allMarketLocations = Global.getSector().getEconomy().getLocationsWithMarkets();
         for (LocationAPI marketLocation : allMarketLocations) {
             List<MarketAPI> markets = Global.getSector().getEconomy().getMarkets(marketLocation);
             for (MarketAPI market : markets) {
-                if (market.getFaction().getId().equals(Factions.INDEPENDENT)) {
-                    generatePerson(market);
+                if (isMarketEligibleForVesperonAgent(market) && !hasAgents(market)) {
+                    addAgents(market);
+                } else if (!isMarketEligibleForVesperonAgent(market) && hasAgents(market)) {
+                    removeAgents(market);
                 }
             }
         }
-        Global.getSector().getMemory().set(VesperonTags.AGENTS_ADDED, true);
     }
 
+    /**
+     * Gets whether or not the market should have a Vesperon rep available for comms.
+     *
+     * @param market market to check
+     * @return boolean
+     */
+    private boolean isMarketEligibleForVesperonAgent(MarketAPI market) {
+        return isPlayerVesperonMember() && (
+            market.getFaction().getId().equals(Factions.INDEPENDENT) ||
+            market.getFaction().getId().equals(Factions.PLAYER)
+        );
+    }
+
+    /**
+     * Sets whether or not the player has a Vesperon membership.
+     *
+     * @param isMember membership status
+     */
+    public void setPlayerVesperonMember(boolean isMember) {
+        Global.getSector().getMemory().set(VesperonTags.AGENTS_ADDED, isMember);
+    }
+
+    /**
+     * Gets whether or not the player has a Vesperon membership.
+     *
+     * @return boolean
+     */
+    private boolean isPlayerVesperonMember() {
+        return Global.getSector().getMemory().getBoolean(VesperonTags.AGENTS_ADDED);
+    }
+
+    /**
+     * Get ALL known blueprints for a particular faction, regardless of whitelisting
+     *
+     * @param faction faction to check
+     * @return set of blueprints by category
+     */
     private HashMap<String, Set<String>> getKnownBlueprintsForFaction(FactionAPI faction) {
         Logger l = Global.getLogger(this.getClass());
 
@@ -370,6 +409,9 @@ public class VesperonIntelManager {
         return factionPublicBlueprints;
     }
 
+    /**
+     * Loads whitelisted bluetprints from mods.
+     */
     private void loadBlueprintWhitelist() {
         Logger l = Global.getLogger(this.getClass());
 
@@ -422,6 +464,12 @@ public class VesperonIntelManager {
         l.info(whiteListedBlueprints);
     }
 
+    /**
+     * Determines whether or not a ship should be excluded based on tag based blacklisting.
+     *
+     * @param ship ship spec to check
+     * @return boolean
+     */
     private boolean shouldExcludeBasedOnTags(ShipHullSpecAPI ship) {
         if (filterMode == BlueprintFilterMode.FILTER_MODE_TAGS) {
             return !ship.hasTag(Items.TAG_RARE_BP) || ship.hasTag(Tags.NO_BP_DROP) || ship.hasTag(Tags.NO_DROP);
@@ -429,6 +477,12 @@ public class VesperonIntelManager {
         return false;
     }
 
+    /**
+     * Determines whether or not a ship should be excluded based on hint based blacklisting.
+     *
+     * @param ship ship spec to check
+     * @return boolean
+     */
     private boolean shouldExcludeBasedOnHints(ShipHullSpecAPI ship) {
         return ship.getHints().contains(ShipTypeHints.UNBOARDABLE) ||
             ship.getHints().contains(ShipTypeHints.HIDE_IN_CODEX) ||
@@ -437,6 +491,12 @@ public class VesperonIntelManager {
             ship.getHints().contains(ShipTypeHints.UNDER_PARENT);
     }
 
+    /**
+     * Gets all currently unknown blueprints for a faction by category.
+     *
+     * @param faction faction to check
+     * @return set of blueprints
+     */
     private HashMap<String, Set<String>> getUnknownBlueprintsForFaction(FactionAPI faction) {
         HashMap<String, Set<String>> allBlueprints = new HashMap<>(allFactionBlueprints);
         HashMap<String, Set<String>> knownFactionBlueprints = getKnownBlueprintsForFaction(faction);
@@ -447,7 +507,50 @@ public class VesperonIntelManager {
         return allBlueprints;
     }
 
-    private void generatePerson(MarketAPI market) {
+    /**
+     * Gets whether market has one or more Vesperon agents.
+     *
+     * @param market market to check
+     * @return boolean
+     */
+    private boolean hasAgents(final MarketAPI market) {
+        ImportantPeopleAPI ip = Global.getSector().getImportantPeople();
+        List<PersonDataAPI> matchingPeopleData = ip.getMatching(new ImportantPeopleAPI.PersonFilter() {
+            @Override
+            public boolean accept(PersonDataAPI personData) {
+                return personData.getPerson().hasTag(VesperonTags.AGENT)
+                    && personData.getLocation().getMarket().getId().equals(market.getId());
+            }
+        });
+        return !matchingPeopleData.isEmpty();
+    }
+
+    /**
+     * Removes Vesperon agents from a market.
+     *
+     * @param market market to act on
+     */
+    private void removeAgents(final MarketAPI market) {
+        ImportantPeopleAPI ip = Global.getSector().getImportantPeople();
+        List<PersonDataAPI> matchingPeopleData = ip.getMatching(new ImportantPeopleAPI.PersonFilter() {
+            @Override
+            public boolean accept(PersonDataAPI personData) {
+                return personData.getPerson().hasTag(VesperonTags.AGENT)
+                    && personData.getLocation().getMarket().getId().equals(market.getId());
+            }
+        });
+        for (PersonDataAPI personData : matchingPeopleData) {
+            ip.removePerson(personData.getPerson().getId());
+            market.getCommDirectory().removePerson(personData.getPerson());
+        }
+    }
+
+    /**
+     * Adds Vesperon agents to a market.
+     *
+     * @param market market to act on
+     */
+    private void addAgents(MarketAPI market) {
         Logger l = Global.getLogger(this.getClass());
         PersonAPI agent = Global.getSector().getFaction(Factions.INDEPENDENT).createRandomPerson();
         ImportantPeopleAPI ip = Global.getSector().getImportantPeople();
@@ -750,6 +853,11 @@ public class VesperonIntelManager {
         } else {
             facilityMemory.set("$hasDefenders", false);
         }
+
+        Global.getSector().getEconomy().removeMarket(independentMarket);
+        Global.getSector().getEconomy().removeMarket(diktatMarket);
+        Global.getSector().getEconomy().removeMarket(tritachyonMarket);
+        Global.getSector().getEconomy().removeMarket(hegemonyMarket);
     }
 
     private void augmentDefenseFleet(CampaignFleetAPI defenders, Collection<ShipVariantAPI> variants) {
@@ -843,16 +951,8 @@ public class VesperonIntelManager {
 
 
     private MarketAPI getMarketForFaction(String factionId) {
-        Logger l = Global.getLogger(this.getClass());
-        MarketAPI chosenMarket = null;
-        List<MarketAPI> marketsCopy = Global.getSector().getEconomy().getMarketsCopy();
-        for (MarketAPI market : marketsCopy) {
-            if (market.getFactionId().equals(factionId)) {
-                l.info("Choosing market for fleet gen params: " + market.getName());
-                chosenMarket = market;
-                break;
-            }
-        }
+        MarketAPI chosenMarket = Global.getFactory().createMarket("temp_market_" + factionId, "temp_" + factionId, 7);
+        chosenMarket.setFactionId(factionId);
         return chosenMarket;
 
     }

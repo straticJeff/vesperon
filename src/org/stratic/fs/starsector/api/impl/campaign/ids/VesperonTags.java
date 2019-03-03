@@ -7,7 +7,8 @@ public class VesperonTags {
 
     // Memory API keys
     public static final String MOD_ENABLED = "$vesperon_enabled";
-    public static final String REP_MARKET = "$vesperonRepMarket";
+    public static final String REP_MARKET_IDS = "$vesperonRepMarkets";
+    public static final String REP_PEOPLE = "$vesperonReps";
     public static final String AGENTS_ADDED = "$vesperonAgentsAdded";
     public static final String CURRENT_CACHE_COUNT = "$currentVesperonCacheCount";
     public static final String CACHE_OPTION = "$vesperonCacheOption";

@@ -8,6 +8,7 @@ import com.fs.starfarer.api.campaign.TextPanelAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.characters.FullName.Gender;
+import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.ids.Ranks;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.BarEventManager;
@@ -18,8 +19,10 @@ import org.stratic.fs.starsector.api.impl.campaign.ids.VesperonTags;
 import org.stratic.fs.starsector.api.impl.campaign.intel.VesperonIntelManager;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.stratic.fs.starsector.api.impl.campaign.intel.bar.events.VesperonMembershipBarEventCreator.MEMBERSHIP_BAR_EVENT_TIMEOUT;
+import static org.stratic.fs.starsector.api.impl.campaign.intel.bar.events.VesperonMembershipBarEventCreatorV2.MEMBERSHIP_BAR_EVENT_TIMEOUT;
 
 public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
 
@@ -40,6 +43,7 @@ public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
     }
 
     private final static double MEMBERSHIP_FEE = 1000000;
+    private final static double REP_MARKET_COUNT = 2;
 
     private VesperonIntelManager vesperonIntelManager;
 
@@ -52,64 +56,74 @@ public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
         if (Global.getSector().getMemoryWithoutUpdate().contains(VesperonTags.AGENTS_ADDED)) {
             return false;
         }
+        if (Global.getSector().getMemoryWithoutUpdate().get(VesperonTags.REP_MARKET_IDS) == null) {
+            setRepMarkets();
+        }
+        @SuppressWarnings("unchecked")
+        List<String> marketIds = (List<String>)Global.getSector().getMemoryWithoutUpdate().get(VesperonTags.REP_MARKET_IDS);
+        @SuppressWarnings("unchecked")
+        List<PersonAPI> people = (List<PersonAPI>)Global.getSector().getMemoryWithoutUpdate().get(VesperonTags.REP_PEOPLE);
+
+        for (String marketId : marketIds) {
+            Global.getLogger(this.getClass()).info("Vesperon rep currently located at market " + Global.getSector().getEconomy().getMarket(marketId).getName());
+        }
+
         vesperonIntelManager = VesperonIntelManager.getInstance();
 
-        this.setMarket();
+        for (int i = 0; i < marketIds.size(); i++) {
+            if (marketIds.get(i).equals(currentMarket.getId())) {
+                this.person = people.get(i);
+                return true;
+            }
+        }
+        return false;
+    }
 
-        regen(currentMarket);
-        return currentMarket.getId().equals(market.getId());
+    private void setRepMarkets() {
+        MemoryAPI memory = Global.getSector().getMemoryWithoutUpdate();
+
+        WeightedRandomPicker<MarketAPI> picker = new WeightedRandomPicker<>(random);
+        for (MarketAPI currentMarket : Global.getSector().getEconomy().getMarketsCopy()) {
+            if (currentMarket.isPlayerOwned()) {
+                continue;
+            }
+            if (currentMarket.isHidden()) {
+                continue;
+            }
+            if (!currentMarket.getFactionId().equals(Factions.INDEPENDENT)) {
+                continue;
+            }
+
+            float w = currentMarket.getSize();
+            picker.add(currentMarket, w);
+        }
+
+        List<String> marketIds = new ArrayList<>();
+        List<PersonAPI> people = new ArrayList<>();
+
+        for (int i = 0; i < REP_MARKET_COUNT; i++) {
+            MarketAPI pickedMarket = picker.pickAndRemove();
+            marketIds.add(pickedMarket.getId());
+
+            PersonAPI person = createPerson();
+            people.add(person);
+        }
+        memory.set(VesperonTags.REP_MARKET_IDS, marketIds, MEMBERSHIP_BAR_EVENT_TIMEOUT);
+        memory.set(VesperonTags.REP_PEOPLE, people, MEMBERSHIP_BAR_EVENT_TIMEOUT);
     }
 
     @Override
-    protected void regen(MarketAPI market) {
-        if (person == null) {
-            person = createPerson();
-
-            if (person.getGender() == Gender.MALE) {
-                person.setPortraitSprite(Global.getSettings().getSpriteName("intel", "vesperon_male"));
-            } else {
-                person.setPortraitSprite(Global.getSettings().getSpriteName("intel", "vesperon_female"));
-            }
-            person.setRankId(Ranks.AGENT);
-            person.setPostId(Ranks.POST_AGENT);
+    protected PersonAPI createPerson() {
+        PersonAPI newPerson = Global.getSector().getFaction(getPersonFaction()).createRandomPerson(getPersonGender(), random);
+        if (newPerson.getGender() == Gender.MALE) {
+            newPerson.setPortraitSprite(Global.getSettings().getSpriteName("intel", "vesperon_male"));
+        } else {
+            newPerson.setPortraitSprite(Global.getSettings().getSpriteName("intel", "vesperon_female"));
         }
-    }
+        newPerson.setRankId(Ranks.AGENT);
+        newPerson.setPostId(Ranks.POST_AGENT);
 
-    private void setMarket() {
-        market = null;
-        MemoryAPI memory = Global.getSector().getMemoryWithoutUpdate();
-        if (
-            memory.contains(VesperonTags.REP_MARKET)
-            && memory.getExpire(VesperonTags.REP_MARKET) > 0
-            && memory.getExpire(VesperonTags.REP_MARKET) < MEMBERSHIP_BAR_EVENT_TIMEOUT
-        ) {
-            market = Global.getSector().getEconomy().getMarket(memory.getString(VesperonTags.REP_MARKET));
-        }
-        if (market == null) {
-
-            WeightedRandomPicker<MarketAPI> picker = new WeightedRandomPicker<>(random);
-
-            for (MarketAPI currentMarket : Global.getSector().getEconomy().getMarketsCopy()) {
-                if (currentMarket == market) continue;
-                if (currentMarket.isPlayerOwned()) continue;
-                if (currentMarket.isHidden()) continue;
-                if (!currentMarket.getFactionId().equals(Factions.INDEPENDENT)) {
-                    continue;
-                }
-
-                float w = currentMarket.getSize();
-                picker.add(currentMarket, w);
-            }
-
-            if (picker.isEmpty()) {
-                picker.add(market, 1f);
-            }
-
-            market = picker.pick();
-            memory.set(VesperonTags.REP_MARKET, market.getId(), MEMBERSHIP_BAR_EVENT_TIMEOUT);
-        }
-
-        Global.getLogger(this.getClass()).info("Adding Vesperon rep to " + market.getName());
+        return newPerson;
     }
 
     @Override
@@ -126,8 +140,6 @@ public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
     @Override
     public void addPromptAndOption(InteractionDialogAPI dialog) {
         super.addPromptAndOption(dialog);
-
-        regen(dialog.getInteractionTarget().getMarket());
 
         TextPanelAPI text = dialog.getTextPanel();
         text.addPara(
@@ -336,8 +348,9 @@ public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
             case LEAVE_DONE:
                 text.addPara("Stay safe, my friend, and good hunting! The Combine wishes you luck.");
 
+                vesperonIntelManager.setPlayerVesperonMember(true);
+                vesperonIntelManager.distributeMembershipAgents();
                 vesperonIntelManager.createVesperonMission(VesperonTags.VesperonCache.MID_LEVEL_CACHE);
-                vesperonIntelManager.activateMembershipAgents();
 
                 BarEventManager.getInstance().notifyWasInteractedWith(this);
                 this.shouldRemoveEvent();
@@ -371,11 +384,6 @@ public class VesperonMembershipBarEvent extends BaseBarEventWithPerson {
     @Override
     protected String getPersonPost() {
         return Ranks.CITIZEN;
-    }
-
-    @Override
-    protected String getPersonPortrait() {
-        return null;
     }
 
     @Override
