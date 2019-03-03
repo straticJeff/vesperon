@@ -1,5 +1,13 @@
 Changelog
 
+v1.2.0
+---
+
+- Add a second recruiter
+- Move recruiters around independent worlds more reliably
+- Vesperon cache reps spawn/despawn dynamically on worlds run by Independent authorities
+- ...and also player colonies, for extra convenience :)
+
 1.1.1
 ---
 
